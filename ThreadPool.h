@@ -8,6 +8,10 @@ public:
     ThreadPool(int min, int max);
     ~ThreadPool();
 
+    void addTask(Task task);
+    int getBusyNum();
+    int getAliveNum();
+
     void ThreadExit();
 
 private:

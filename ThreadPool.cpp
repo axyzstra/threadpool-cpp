@@ -34,6 +34,22 @@ ThreadPool::ThreadPool(int min, int max)
     } while (false);
 }
 
+int ThreadPool::getBusyNum()
+{
+    pthread_mutex_lock(&m_lock);
+    int num = m_busyNum;
+    pthread_mutex_unlock(&m_lock);
+    return num;
+}
+
+int ThreadPool::getAliveNum()
+{
+    pthread_mutex_lock(&m_lock);
+    int num = m_aliveNum;
+    pthread_mutex_unlock(&m_lock);
+    return 0;
+}
+
 void ThreadPool::ThreadExit()
 {
     pthread_t tid = pthread_self();
