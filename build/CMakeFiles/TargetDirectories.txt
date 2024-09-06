@@ -1,0 +1,3 @@
+/home/ubuntu/usr/C++/threadpool-cpp/build/CMakeFiles/app.dir
+/home/ubuntu/usr/C++/threadpool-cpp/build/CMakeFiles/edit_cache.dir
+/home/ubuntu/usr/C++/threadpool-cpp/build/CMakeFiles/rebuild_cache.dir
