@@ -34,6 +34,17 @@ ThreadPool::ThreadPool(int min, int max)
     } while (false);
 }
 
+void ThreadPool::addTask(Task task)
+{
+    if (m_shutdown) {
+        return;
+    }
+    // 添加时不用枷锁，添加函数中有锁
+    m_taskQ->addTask(task);
+    // 唤醒工作线程
+    pthread_cond_signal(&m_notEmpty);
+}
+
 int ThreadPool::getBusyNum()
 {
     pthread_mutex_lock(&m_lock);
