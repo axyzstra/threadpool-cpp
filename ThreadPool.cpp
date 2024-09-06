@@ -9,30 +9,27 @@ ThreadPool<T>::ThreadPool(int min, int max)
 {
     m_taskQ = new TaskQueue<T>;
 
-    do {
-        m_minNum = min;
-        m_maxNum = max;
-        m_busyNum = 0;
-        m_aliveNum = min;
+    m_minNum = min;
+    m_maxNum = max;
+    m_busyNum = 0;
+    m_aliveNum = min;
 
-        m_threadIDs = new pthread_t[max];
-        memset(m_threadIDs, 0, sizeof(pthread_t) * max);
-        
-        if (
-            pthread_mutex_init(&m_lock, nullptr) != 0 || 
-            pthread_cond_init(&m_notEmpty, nullptr) != 0
-        ) 
-        {
-            std::cout << "mutex or cond init fail..." << std::endl;
-        }
+    m_threadIDs = new pthread_t[max];
+    memset(m_threadIDs, 0, sizeof(pthread_t) * max);
+    
+    if (
+        pthread_mutex_init(&m_lock, nullptr) != 0 || 
+        pthread_cond_init(&m_notEmpty, nullptr) != 0
+    ) 
+    {
+        std::cout << "mutex or cond init fail..." << std::endl;
+    }
 
-        for (int i = 0; i < min; i++) {
-            pthread_create(&m_threadIDs[i], nullptr, worker, this);
-            std::cout << "创建子线程，ID = " << std::to_string(m_threadIDs[i]) << std::endl;
-        }
-        pthread_create(&m_managerID, nullptr, manager, this);
-
-    } while (false);
+    for (int i = 0; i < min; i++) {
+        pthread_create(&m_threadIDs[i], nullptr, worker, this);
+        std::cout << "创建子线程，ID = " << std::to_string(m_threadIDs[i]) << std::endl;
+    }
+    pthread_create(&m_managerID, nullptr, manager, this);
 }
 
 template <typename T>
