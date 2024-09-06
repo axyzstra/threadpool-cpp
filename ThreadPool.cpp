@@ -31,11 +31,64 @@ ThreadPool::ThreadPool(int min, int max)
         }
         pthread_create(&m_managerID, nullptr, manager, this);
 
-    } while (0);
+    } while (false);
 }
 
+void ThreadPool::ThreadExit()
+{
+    pthread_t tid = pthread_self();
+    for (int i = 0; i < m_maxNum; i++) {
+        if (m_threadIDs[i] == tid) {
+            std::cout << "threadExit() function: thread " 
+                << std::to_string(pthread_self()) << " exiting..." << std::endl;
+            m_threadIDs[i] = 0;
+            break;
+        }
+    }
+    pthread_exit(&tid);
+}
+
+// 工作者线程，从任务队列中取出任务进行执行
 void *ThreadPool::worker(void *arg)
 {
+    ThreadPool* pool = static_cast<ThreadPool*>(arg);
+    while (true) {
+        pthread_mutex_lock(&pool->m_lock);
+        // 当任务队列为空时进行阻塞
+        while (pool->m_taskQ->getNum() == 0 && !pool->m_shutdown) {
+            std::cout << "thread " << std::to_string(pthread_self()) << "阻塞" << std::endl;
+            pthread_cond_wait(&pool->m_notEmpty, &pool->m_lock);
+            // 唤醒后
+            if (pool->m_exitNum > 0) {
+                pool->m_exitNum--;
+                if (pool->m_aliveNum > pool->m_minNum) {
+                    pool->m_aliveNum--;
+                    pthread_mutex_unlock(&pool->m_lock);
+                    pool->ThreadExit();
+                }
+            }
+        }
+        // 若线程池关闭则退出当前线程
+        if (pool->m_shutdown) {
+            pthread_mutex_unlock(&pool->m_lock);
+            pool->ThreadExit();
+        }
+        // 任务队列不为空时
+        Task task = pool->m_taskQ->getTask();
+        pool->m_busyNum++;
+        pthread_mutex_unlock(&pool->m_lock);
+
+        // 执行任务
+        std::cout << "thread" << std::to_string(pthread_self()) << " start working" << std::endl;
+        task.function(task.arg);
+        delete task.arg;
+        task.arg = nullptr;
+        // 任务结束
+        std::cout << "thread " << std::to_string(pthread_self()) << " end working..." << std::endl;
+        pthread_mutex_lock(&pool->m_lock);
+        pool->m_busyNum--;
+        pthread_mutex_unlock(&pool->m_lock);
+    }
     return nullptr;
 }
 

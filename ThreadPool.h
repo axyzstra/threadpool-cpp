@@ -8,6 +8,8 @@ public:
     ThreadPool(int min, int max);
     ~ThreadPool();
 
+    void ThreadExit();
+
 private:
     static void* worker(void* arg);
     static void* manager(void* arg);
