@@ -34,6 +34,21 @@ ThreadPool::ThreadPool(int min, int max)
     } while (false);
 }
 
+ThreadPool::~ThreadPool()
+{
+    m_shutdown = true;
+    // 销毁管理者线程
+    pthread_join(m_managerID, nullptr);
+    // 销毁管理者线程
+    for (int i = 0; i < m_aliveNum; i++) {
+        pthread_cond_signal(&m_notEmpty);
+    }
+    if (m_taskQ) delete m_taskQ;
+    if (m_threadIDs) delete[] m_threadIDs;
+    pthread_mutex_destroy(&m_lock);
+    pthread_cond_destroy(&m_notEmpty);
+}
+
 void ThreadPool::addTask(Task task)
 {
     if (m_shutdown) {
