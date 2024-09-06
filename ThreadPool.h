@@ -2,13 +2,18 @@
 #define _THREADPOOL_H_
 #include <pthread.h>
 #include "TaskQueue.h"
+#include "TaskQueue.cpp"
 
+extern pthread_mutex_t lock;
+
+
+template <typename T>
 class ThreadPool {
 public:
     ThreadPool(int min, int max);
     ~ThreadPool();
 
-    void addTask(Task task);
+    void addTask(Task<T> task);
     int getBusyNum();
     int getAliveNum();
 
@@ -30,7 +35,7 @@ private:
     pthread_t m_managerID;
 
     // 任务队列
-    TaskQueue* m_taskQ;
+    TaskQueue<T>* m_taskQ;
 
     // 线程数上下限
     int m_maxNum;

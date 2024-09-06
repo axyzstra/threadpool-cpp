@@ -4,9 +4,10 @@
 #include <string>
 #include <unistd.h>
 
-ThreadPool::ThreadPool(int min, int max)
+template <typename T>
+ThreadPool<T>::ThreadPool(int min, int max)
 {
-    m_taskQ = new TaskQueue();
+    m_taskQ = new TaskQueue<T>;
 
     do {
         m_minNum = min;
@@ -27,14 +28,15 @@ ThreadPool::ThreadPool(int min, int max)
 
         for (int i = 0; i < min; i++) {
             pthread_create(&m_threadIDs[i], nullptr, worker, this);
-            std::cout << "创建子线程" << std::to_string(m_threadIDs[i]) << std::endl;
+            std::cout << "创建子线程，ID = " << std::to_string(m_threadIDs[i]) << std::endl;
         }
         pthread_create(&m_managerID, nullptr, manager, this);
 
     } while (false);
 }
 
-ThreadPool::~ThreadPool()
+template <typename T>
+ThreadPool<T>::~ThreadPool()
 {
     m_shutdown = true;
     // 销毁管理者线程
@@ -49,7 +51,8 @@ ThreadPool::~ThreadPool()
     pthread_cond_destroy(&m_notEmpty);
 }
 
-void ThreadPool::addTask(Task task)
+template <typename T>
+void ThreadPool<T>::addTask(Task<T> task)
 {
     if (m_shutdown) {
         return;
@@ -60,7 +63,8 @@ void ThreadPool::addTask(Task task)
     pthread_cond_signal(&m_notEmpty);
 }
 
-int ThreadPool::getBusyNum()
+template <typename T>
+int ThreadPool<T>::getBusyNum()
 {
     pthread_mutex_lock(&m_lock);
     int num = m_busyNum;
@@ -68,7 +72,8 @@ int ThreadPool::getBusyNum()
     return num;
 }
 
-int ThreadPool::getAliveNum()
+template <typename T>
+int ThreadPool<T>::getAliveNum()
 {
     pthread_mutex_lock(&m_lock);
     int num = m_aliveNum;
@@ -76,7 +81,8 @@ int ThreadPool::getAliveNum()
     return 0;
 }
 
-void ThreadPool::ThreadExit()
+template <typename T>
+void ThreadPool<T>::ThreadExit()
 {
     pthread_t tid = pthread_self();
     for (int i = 0; i < m_maxNum; i++) {
@@ -91,14 +97,15 @@ void ThreadPool::ThreadExit()
 }
 
 // 工作者线程，从任务队列中取出任务进行执行
-void *ThreadPool::worker(void *arg)
+template <typename T>
+void *ThreadPool<T>::worker(void *arg)
 {
     ThreadPool* pool = static_cast<ThreadPool*>(arg);
     while (true) {
         pthread_mutex_lock(&pool->m_lock);
         // 当任务队列为空时进行阻塞
         while (pool->m_taskQ->getNum() == 0 && !pool->m_shutdown) {
-            std::cout << "thread " << std::to_string(pthread_self()) << "阻塞" << std::endl;
+            std::cout << "thread " << std::to_string(pthread_self()) << " waiting..." << std::endl;
             pthread_cond_wait(&pool->m_notEmpty, &pool->m_lock);
             // 唤醒后
             if (pool->m_exitNum > 0) {
@@ -121,12 +128,18 @@ void *ThreadPool::worker(void *arg)
         pthread_mutex_unlock(&pool->m_lock);
 
         // 执行任务
-        std::cout << "thread" << std::to_string(pthread_self()) << " start working" << std::endl;
+        pthread_mutex_lock(&lock);
+        std::cout << "thread " << std::to_string(pthread_self()) << " start working" << std::endl;
+        pthread_mutex_unlock(&lock);
+        
         task.function(task.arg);
         delete task.arg;
         task.arg = nullptr;
         // 任务结束
+        pthread_mutex_lock(&lock);
         std::cout << "thread " << std::to_string(pthread_self()) << " end working..." << std::endl;
+        pthread_mutex_unlock(&lock);
+
         pthread_mutex_lock(&pool->m_lock);
         pool->m_busyNum--;
         pthread_mutex_unlock(&pool->m_lock);
@@ -135,7 +148,8 @@ void *ThreadPool::worker(void *arg)
 }
 
 // 管理者线程，每隔一段时间读取线程池中的数据对线程进行生成和销毁
-void *ThreadPool::manager(void *arg)
+template <typename T>
+void *ThreadPool<T>::manager(void *arg)
 {
     ThreadPool* pool = static_cast<ThreadPool*>(arg);
     while (!pool->m_shutdown) {
