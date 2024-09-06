@@ -181,8 +181,8 @@ void *ThreadPool<T>::manager(void *arg)
             pthread_mutex_unlock(&pool->m_lock);
         }
 
-        // 若线程数过多，存活线程数 * 2 大于 任务数
-        if (aliveNum * 2 > taskNum && aliveNum > pool->m_minNum) {
+        // 若线程数过多，忙碌线程数 * 2 小于 存活线程数
+        if (busyNum * 2 < aliveNum && aliveNum > pool->m_minNum) {
             pthread_mutex_lock(&pool->m_lock);
             // 需要销毁的线程数
             pool->m_exitNum = NUMBER;
