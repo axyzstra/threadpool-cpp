@@ -1,5 +1,15 @@
 #include "TaskQueue.h"
 
+TaskQueue::TaskQueue()
+{
+    pthread_mutex_init(&m_mutex, nullptr);
+}
+
+TaskQueue::~TaskQueue()
+{
+    pthread_mutex_destroy(&m_mutex);
+}
+
 Task TaskQueue::getTask()
 {
     Task t;

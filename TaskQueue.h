@@ -22,6 +22,10 @@ struct Task {
 
 class TaskQueue {
 public:
+    TaskQueue();
+    ~TaskQueue();
+
+
     // 获取任务
     Task getTask();
     // 添加任务
